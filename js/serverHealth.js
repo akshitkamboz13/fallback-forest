@@ -4,8 +4,6 @@ const ServerHealth = (() => {
   let checkInterval = null;
   let onRestoredCallback = null;
 
-  // Endpoint polled by client (Can be set to your Cloudflare Worker URL)
-  // Example: 'https://home-server-health.your-name.workers.dev'
   let WORKER_ENDPOINT = window.WORKER_ENDPOINT || (window.location.origin + '/api/server-status');
 
   function setWorkerEndpoint(url) {
@@ -16,7 +14,6 @@ const ServerHealth = (() => {
     onRestoredCallback = onRestored;
     startPolling();
 
-    // 1. BroadcastChannel Listener (For multi-tab or local worker triggers)
     if ('BroadcastChannel' in window) {
       try {
         const channel = new BroadcastChannel('server_status_channel');
@@ -28,22 +25,19 @@ const ServerHealth = (() => {
       } catch(e) {}
     }
 
-    // 2. Window PostMessage Listener (Allows Cloudflare Worker / iframe pings)
     addEventListener('message', (event) => {
       if (event.data && (event.data === 'SERVER_ONLINE' || event.data.triggerEarthquake)) {
         triggerServerRestored();
       }
     });
 
-    // 3. Shift+R Keyboard Shortcut (Manual testing trigger)
     addEventListener('keydown', e => {
       if (e.code === 'KeyR' && e.shiftKey) {
-        console.log('⚡ Manual Shift+R trigger: Server Online signal received!');
+        console.log('⚡ Shift+R trigger: Server Online signal received!');
         triggerServerRestored();
       }
     });
 
-    // 4. URL parameter ?trigger=earthquake or ?signal=online
     const params = new URLSearchParams(window.location.search);
     if (params.get('trigger') === 'earthquake' || params.get('signal') === 'online') {
       setTimeout(() => triggerServerRestored(), 2000);
@@ -52,16 +46,20 @@ const ServerHealth = (() => {
 
   function startPolling() {
     if (checkInterval) clearInterval(checkInterval);
-    checkInterval = setInterval(checkStatus, 4000); // Check every 4 seconds
+    checkInterval = setInterval(checkStatus, 4000);
   }
 
   async function checkStatus() {
     if (isServerOnline) return;
     try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 3200);
+      // Avoid fetch errors on static GitHub Pages hosting
+      if (window.location.hostname.includes('github.io')) {
+        return; // GitHub Pages is static; triggers via WORKER_ENDPOINT, postMessage, or Shift+R
+      }
 
-      // Poll Cloudflare Worker or Home Server endpoint
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 3000);
+
       const res = await fetch(WORKER_ENDPOINT, {
         method: 'GET',
         cache: 'no-store',
@@ -71,7 +69,7 @@ const ServerHealth = (() => {
       clearTimeout(timeoutId);
 
       if (res.ok) {
-        const data = await res.json().catch(() => ({ online: true }));
+        const data = await res.json().catch(() => ({ online: false }));
         if (data.online || data.triggerEarthquake || data.status === 'ONLINE') {
           triggerServerRestored();
         }
