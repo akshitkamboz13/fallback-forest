@@ -122,14 +122,13 @@ const World = (() => {
     return e;
   }
 
-  // Generate City Skyscraper Building
   function genBuilding(x, z, r) {
     const wy = getHeight(x, z);
     return {
       type: 'BUILDING',
       x, z, wy,
-      w: 3.5 + r() * 4.0,       // Building width
-      h: 12.0 + r() * 22.0,     // Skyscraper height
+      w: 3.5 + r() * 4.0,
+      h: 12.0 + r() * 22.0,
       hue: [200, 215, 230, 280, 45][Math.floor(r() * 5)],
       sat: 60 + r() * 35,
       lit: 25 + r() * 30,
@@ -141,7 +140,7 @@ const World = (() => {
 
   function genChunk(cx, cz) {
     const r = mkLCG(cSeed(cx, cz));
-    const n = 14 + Math.floor(r() * 14);
+    const n = 10 + Math.floor(r() * 10);
     const ents = [];
     for (let i = 0; i < n; i++) {
       const lx = r() * CS, lz = r() * CS;
@@ -149,16 +148,14 @@ const World = (() => {
       ents.push(genEnt(type, colR, cx * CS + lx, cz * CS + lz, r));
     }
 
-    // Generate 3-5 City Buildings per chunk (rise up during transition)
     const buildings = [];
-    const bCount = 3 + Math.floor(r() * 3);
+    const bCount = 2 + Math.floor(r() * 2);
     for (let i = 0; i < bCount; i++) {
       const bx = cx * CS + r() * CS;
       const bz = cz * CS + r() * CS;
       buildings.push(genBuilding(bx, bz, r));
     }
 
-    // Generate 3D ground sub-tiles
     const tiles = [];
     const tilesPerAxis = CS / TILE_SZ;
     for (let tx = 0; tx < tilesPerAxis; tx++) {
@@ -189,12 +186,18 @@ const World = (() => {
     return chunks.get(k);
   }
 
+  // Aggressive memory cleanup of old pruned chunks
   function prune(px, pz) {
     const pcx = Math.floor(px / CS), pcz = Math.floor(pz / CS);
     const PR = CFG.PRUNE_RADIUS;
-    for (const k of chunks.keys()) {
+    for (const [k, chunk] of chunks.entries()) {
       const [cx, cz] = k.split(',').map(Number);
-      if (Math.abs(cx - pcx) > PR || Math.abs(cz - pcz) > PR) chunks.delete(k);
+      if (Math.abs(cx - pcx) > PR || Math.abs(cz - pcz) > PR) {
+        chunk.ents = null;
+        chunk.buildings = null;
+        chunk.tiles = null;
+        chunks.delete(k);
+      }
     }
   }
 
@@ -213,9 +216,9 @@ const World = (() => {
 
         if (Math.hypot(dx, dz) <= maxDist && side <= maxSide) {
           const c = getChunk(pcx + dx, pcz + dz);
-          for (const e of c.ents) outEnts.push(e);
-          for (const b of c.buildings) outBuildings.push(b);
-          for (const t of c.tiles) outTiles.push(t);
+          for (let i = 0; i < c.ents.length; i++) outEnts.push(c.ents[i]);
+          for (let i = 0; i < c.buildings.length; i++) outBuildings.push(c.buildings[i]);
+          for (let i = 0; i < c.tiles.length; i++) outTiles.push(c.tiles[i]);
         }
       }
     }

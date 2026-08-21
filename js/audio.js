@@ -212,6 +212,10 @@ const AudioEngine = (() => {
       if (!cachedVoice) loadVoices();
       if (cachedVoice) utt.voice = cachedVoice;
 
+      // Keep max 2 utterances to prevent memory leaks
+      if (window._speechUtterances.length > 2) {
+        window._speechUtterances.shift();
+      }
       window._speechUtterances.push(utt);
       utt.onend = () => {
         const idx = window._speechUtterances.indexOf(utt);

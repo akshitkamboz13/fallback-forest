@@ -22,7 +22,7 @@ export default {
     }
 
     // Configure your Home Server URL here
-    const HOME_SERVER_URL = env.HOME_SERVER_URL || "https://your-home-server.com/api/health";
+    const HOME_SERVER_URL = env.HOME_SERVER_URL || "https://search.si4k.online.com/api/health";
 
     try {
       const controller = new AbortController();
@@ -59,7 +59,7 @@ export default {
       triggerEarthquake: false,
       message: "Server unreachable. Walking toward the city..."
     }), {
-      status: 200,
+      status: 200,s
       headers: {
         "Content-Type": "application/json",
         "Access-Control-Allow-Origin": "*"
