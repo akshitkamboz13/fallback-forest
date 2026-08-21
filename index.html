@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>Server Unreachable - Forest Walk</title>
+  <style>
+    *{margin:0;padding:0;box-sizing:border-box}
+    html,body{width:100%;height:100%;overflow:hidden;background:#000}
+    #canvas{display:block;width:100vw;height:100vh}
+
+    #start-overlay {
+      position: fixed;
+      top: 0; left: 0; width: 100vw; height: 100vh;
+      background: rgba(8, 12, 10, 0.85);
+      backdrop-filter: blur(12px);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+      color: #fff;
+      font-family: system-ui, -apple-system, sans-serif;
+      text-align: center;
+      padding: 24px;
+      cursor: pointer;
+      transition: opacity 0.5s ease;
+    }
+
+    #start-overlay.hidden {
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(231, 76, 60, 0.2);
+      border: 1px solid rgba(231, 76, 60, 0.5);
+      color: #ff6b6b;
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      padding: 6px 16px;
+      border-radius: 20px;
+      margin-bottom: 16px;
+    }
+
+    .start-title {
+      font-size: 32px;
+      font-weight: 800;
+      color: #ffffff;
+      margin-bottom: 12px;
+      text-shadow: 0 0 20px rgba(255,255,255,0.2);
+    }
+
+    .start-desc {
+      font-size: 16px;
+      line-height: 1.6;
+      color: #c2d8c8;
+      max-width: 540px;
+      margin-bottom: 24px;
+      font-style: italic;
+    }
+
+    .start-btn {
+      background: linear-gradient(135deg, #2ecc71, #1abc9c);
+      color: #000;
+      font-weight: 700;
+      font-size: 17px;
+      padding: 16px 36px;
+      border-radius: 30px;
+      box-shadow: 0 10px 30px rgba(46, 204, 113, 0.4);
+      letter-spacing: 0.04em;
+      transition: transform 0.2s ease;
+    }
+
+    .start-btn:hover {
+      transform: scale(1.04);
+    }
+
+    #hint{
+      position:fixed;bottom:14px;left:50%;transform:translateX(-50%);
+      color:rgba(255,255,255,0.45);font:12px/1.4 monospace;
+      pointer-events:none;letter-spacing:.08em;white-space:nowrap;
+      background:rgba(0,0,0,0.55);padding:6px 16px;border-radius:12px;
+      text-align:center;z-index:10;
+    }
+
+    /* Protagonist Dialogue HUD Banner */
+    #dialogue-hud {
+      position: fixed;
+      bottom: 58px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 90%;
+      max-width: 680px;
+      background: rgba(12, 18, 14, 0.88);
+      border: 1px solid rgba(120, 220, 140, 0.45);
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.75), 0 0 16px rgba(80, 200, 120, 0.20);
+      backdrop-filter: blur(8px);
+      padding: 14px 20px;
+      border-radius: 14px;
+      color: #e2f4e6;
+      font-family: system-ui, -apple-system, sans-serif;
+      font-size: 14px;
+      line-height: 1.5;
+      pointer-events: none;
+      z-index: 20;
+      opacity: 0;
+      transition: opacity 0.4s ease, transform 0.4s ease;
+    }
+
+    #dialogue-hud.active {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+
+    .dialogue-speaker {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: #5ce690;
+      margin-bottom: 4px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .dialogue-speaker::before {
+      content: '';
+      display: inline-block;
+      width: 7px;
+      height: 7px;
+      background: #5ce690;
+      border-radius: 50%;
+      box-shadow: 0 0 8px #5ce690;
+    }
+
+    .dialogue-text {
+      font-style: italic;
+      color: #f0faf2;
+    }
+  </style>
+</head>
+<body>
+  <div id="start-overlay" onclick="AudioEngine.unlockAudio(); this.classList.add('hidden');">
+    <div class="status-badge">⚠️ Server Unreachable</div>
+    <div class="start-title">Lost in the Deep Forest</div>
+    <div class="start-desc">
+      "I'm currently somewhere deep in the forest.<br/>
+      Apparently I need internet to buy Starlink.<br/>
+      Walking toward the city... 🚶 help me to find the city"
+    </div>
+    <div class="start-btn">🚶 Walk Toward the City</div>
+  </div>
+
+  <svg id="canvas" xmlns="http://www.w3.org/2000/svg"></svg>
+  
+  <div id="dialogue-hud">
+    <div class="dialogue-speaker">Lost Hiker (Thinking Out Loud)</div>
+    <div id="dialogue-text" class="dialogue-text">...</div>
+  </div>
+
+  <div id="hint">W / S &nbsp;walk &nbsp;·&nbsp; A / D &nbsp;turn &nbsp;·&nbsp; Help me find the city 🚶</div>
+
+  <script src="js/config.js"></script>
+  <script src="js/sky.js"></script>
+  <script src="js/world.js"></script>
+  <script src="js/audio.js"></script>
+  <script src="js/dialogues.js"></script>
+  <script src="js/dialogueSystem.js"></script>
+  <script src="js/leaves.js"></script>
+  <script src="js/renderer.js"></script>
+  <script src="js/player.js"></script>
+  <script src="js/serverHealth.js"></script>
+  <script src="js/game.js"></script>
+</body>
+</html>
